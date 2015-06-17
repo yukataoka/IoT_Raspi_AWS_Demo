@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8" />
+<title>1日グラフ</title>
+
+<link rel="stylesheet" type="text/css" href="/js/jquery.jqplot.min.css" />
+<!--[if lt IE 9]><script language="javascript" type="text/javascript" src="/../excanvas.js"></script><![endif]-->
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+
+<script type="text/javascript" src="/js/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="/js/plugins/jqplot.trendline.min.js"></script>
+<script type="text/javascript" src="/js/plugins/jqplot.dateAxisRenderer.min.js"></script>
+
+<script type="text/javascript" src="/js/plugins/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="/js/plugins/jqplot.cursor.min.js"></script>
+<script type="text/javascript" src="/js/plugins/jqplot.pointLabels.min.js"></script>
+
+<link type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/smoothness/jquery-ui.css" rel="Stylesheet" /> 
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
+
+<style type="text/css">
+body {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+}
+
+body table {
+    margin: 2em;
+}
+  
+#resizable1 { 
+    width: 800px; 
+    height: 600px;
+    margin-top: 2em;
+    margin-bottom: 2em;
+    padding: 1.2em;
+}
+
+.jqplot-target {
+    font-size: 16px;
+}
+
+</style>
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+    
+    // 日時取得（但し3時前なら前日24時頃を取得）
+    var dDate = new Date();
+    if(dDate.getHours() < 12) dDate.setDate(dDate.getDate() - 1);
+    
+    // 終了時刻
+    var dYy = dDate.getFullYear();
+    var dMm = dDate.getMonth() + 1;
+    if(dMm < 10) dMm = '0' + dMm;
+    var dDd = dDate.getDate();
+    if(dDd < 10) dDd = '0' + dDd;
+    $("#dDate").val(dYy+"-"+dMm+"-"+dDd);
+    
+    // グラフ表示押下
+    $("#doSbmit").click(function(){
+    	fncGetData();
+    });
+    
+});
+
+// グラフ表示データ取得とグラフ表示
+function fncGetData(){
+    
+    var vTempData = [[]]; // 温度
+    var vHumData  = [[]]; // 湿度
+    var vCo2Data  = [[]]; // CO2
+    var vLuxData  = [[]]; // 照度
+    var jsonPath  = "/Hub01/"+$("#dDate").val().replace(/\-/g, "_")+".json"; // JSONファイル（日付名）
+    
+    // JSONデータ獲得
+    $.getJSON(jsonPath, function() {
+        //alert("実行");
+    })
+    .success(function(data) {
+        //alert("成功");
+        var nCount = 0;
+        var vMmin  = "";
+        var vMax   = "";
+        
+        var wBrakeTime = 999999;
+        var wDateTime  = "";
+        var wBrakeTemp = 0;
+        var wBrakeHum  = 0;
+        var wBrakeCO2  = 0;
+        var wBrakeIll  = 0;
+        var i = 0;
+        $.each(data, function(){
+            
+            if(i == 0 && nCount == 0) vMmin = this.Date + " " + this.Time;
+            vMax = this.Date + " " + this.Time;
+            
+            var wTime = Math.floor(parseInt(this.Time.replace(/:/g, "")) / 1000);
+            if(wTime != wBrakeTime){
+                if(i != 0){
+                    vTempData[nCount] = [wDateTime, (wBrakeTemp / i)];
+                    vHumData[nCount]  = [wDateTime, (wBrakeHum  / i)];
+                    vCo2Data[nCount]  = [wDateTime, (wBrakeCO2  / i)];
+                    vLuxData[nCount]  = [wDateTime, (wBrakeIll  / i)];
+                    nCount++;
+                }
+                wBrakeTemp = 0;
+                wBrakeHum  = 0;
+                wBrakeCO2  = 0;
+                wBrakeIll  = 0;
+                i = 0;
+                wBrakeTime = wTime;
+                wDateTime = this.Date.replace(/\//g, "-") + " " + this.Time.substring(0, 4) + "0:00";
+            }
+            
+            wBrakeTemp += this.Temperature;
+            wBrakeHum  += this.Humidity;
+            wBrakeCO2  += this.CO2;
+            wBrakeIll  += this.Illuminance;
+            i++;
+            
+        });
+        
+        if(i != 0){
+            vTempData[nCount] = [wDateTime, (wBrakeTemp / i)];
+            vHumData[nCount]  = [wDateTime, (wBrakeHum  / i)];
+            vCo2Data[nCount]  = [wDateTime, (wBrakeCO2  / i)];
+            vLuxData[nCount]  = [wDateTime, (wBrakeIll  / i)];
+        }
+        
+        var vData = [vTempData, vHumData, vCo2Data, vLuxData];
+        var vText = vMmin + "～" + vMax;
+        fncPlot(vData, nCount, vText, vMmin.replace(/\//g, "-"), vMax.replace(/\//g, "-"));
+    })
+    .error(function(jqXHR, textStatus, errorThrown) {
+        alert("エラー：" + textStatus);
+        alert("テキスト：" + jqXHR.responseText);
+    })
+    .complete(function() {
+        //alert("完了");
+    });
+
+}
+
+// グラフ表示（データ, データ数, X軸タイトル, 最少X軸, 最大X軸）
+function fncPlot(vData, nCount, vText, vMmin, vMax){
+
+    // 件数表示調整
+    var vFormatString = "%H";
+    var vTickInterval = "30 minutes";
+
+    // 折れ線グラフ表示設定
+    var vS1 = { yaxis:'yaxis',  label:'温度*c', color:'red',    showMarker:true, lineWidth:2, markerOptions:{style:'square'} };
+    var vS2 = { yaxis:'y2axis', label:'湿度%', color:'blue',   showMarker:true, lineWidth:2, markerOptions:{style:'square'} };
+    var vS3 = { yaxis:'y3axis', label:'CO2ppm',  color:'green',  showMarker:true, lineWidth:2, markerOptions:{style:'square'} };
+    var vS4 = { yaxis:'y4axis', label:'照度lux', color:'orange', showMarker:true, lineWidth:2, markerOptions:{style:'square'} };
+    var vSeries = [vS1,vS2,vS3,vS4];
+
+    // グラフ表示オプション
+    var options = {
+        // グラフタイトル
+        title: {
+            text:"農業ハウス環境計測1日グラフ（10分平均）",
+            show:true,
+        },
+        // グラフ色指定など
+        series: vSeries,
+        // グラフ凡例
+        legend:{
+            show:true,
+            location:'se',
+            xoffset:0,
+            yoffset:0,
+        },
+        animate:true,
+        // 各データY軸スケール表示と色付
+        axesDefaults:{
+            useSeriesColor:true,
+            rendererOptions:{ alignTicks:true }
+        },
+        // グラフ内でカーソルを表示
+        cursor:{
+            show:true,
+            showTooltip:false,
+        },
+        // X軸、Y軸の表示詳細設定
+        axes:{
+            xaxis:{
+                renderer:$.jqplot.DateAxisRenderer,
+                min:vMmin,
+                max:vMax,
+                tickOptins:{
+                    formatString:vFormatString,
+                    textColor:'black',
+                    angle:15,
+                },
+                tickInterval: vTickInterval,
+                label:'時刻（'+vText+'）',
+                pad:0,
+            },
+            yaxis:{
+                tickOptins:{ textColor:'black' },
+                label:'値',
+            }
+        },
+        // グラフの値を表示
+        highlighter:{
+            show:true,
+            showLable:true,
+            tooltipAxes:'y',
+        }
+    };
+    
+    // グラフの表示
+    var plot1 = $.jqplot('chart1', vData,  options);
+    
+    // 表示領域がリサイズ
+    $("#resizable1").resizable({delay:20});
+    $('#resizable1').bind('resize', function(event, ui) {
+        plot1.replot( { resetAxes: true } );
+    });
+
+}
+
+</script>
+</head>
+
+<body>
+<div class="colmask leftmenu">
+<div class="colleft">
+<div class="col1" id="example-content">
+
+<table>
+<tr>
+<td>
+<input type="date" id="dDate" /> <input type="button" id="doSbmit" value="グラフ表示" />
+</td>
+</tr>
+<tr>
+<td>
+<div id="resizable1" class="ui-widget-content">
+<div id="chart1" style="height:96%; width:96%;">
+</div>
+</div>
+</td>
+</tr>
+</table>
+
+</div>
+</div>
+</div>
+
+</body>
+</html>

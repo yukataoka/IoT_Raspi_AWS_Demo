@@ -1,0 +1,59 @@
+<!doctype html>
+<head>
+<meta charset="UTF-8" />
+
+<style type="text/css">
+table{
+        width: 350px;
+        border-collapse: collapse;
+}
+th{
+        width: 100px;
+        padding: 6px;
+        text-align: left;
+        vertical-align: top;
+        color: #333;
+        background-color: #eee;
+        border: 1px solid #b9b9b9;
+}
+td{
+        padding: 6px;
+        background-color: #fff;
+        border: 1px solid #b9b9b9;
+}
+</style>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script type='text/javascript'>
+$(function() {
+  $.getJSON("Hub01/now.json", function() {
+    //alert("実行");
+  })
+  .success(function(data) {
+    //alert("成功");
+    $("#demo").append("<tr><th>計測日時</th><td>"+data.Date+" "+data.Time+"</td></tr>");
+    $("#demo").append("<tr><th>温度</th><td>"+data.Temperature+" ℃</td></tr>");
+    $("#demo").append("<tr><th>湿度</th><td>"+data.Humidity+" ％</td></tr>");
+    $("#demo").append("<tr><th>CO2</th><td>"+data.CO2+" ppm</td></tr>");
+    $("#demo").append("<tr><th>照度</th><td>"+data.Illuminance+" lux</td></tr>");
+  })
+  .error(function(jqXHR, textStatus, errorThrown) {
+    alert("エラー：" + textStatus);
+    alert("テキスト：" + jqXHR.responseText);
+  })
+  .complete(function() {
+    //alert("完了");
+  });
+});
+</script>
+
+</head>
+
+<body>
+<h2>センサ値表示</h2>
+
+<table id="demo">
+</table>
+
+</body>
+</html>
