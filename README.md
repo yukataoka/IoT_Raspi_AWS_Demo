@@ -55,3 +55,5 @@ $ git clone https://github.com/seanbechhofer/raspberrypi
 
 jqPlot
 http://www.jqplot.com/
+
+**ライセンス他は各サイトの説明に従ってください**
