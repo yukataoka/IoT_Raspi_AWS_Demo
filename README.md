@@ -15,6 +15,7 @@ $ wget http://www.byvac.com/downloads/sws/notsmb_1_3.zip
 $ unzip notsmb_1_3.zip
 $ sudo python setup.py install
 
+
 **温湿度センサHDC1000 I2C プログラム計測**
 
 秋月電子 HDC100使用 温湿度センサーモジュール
@@ -26,6 +27,7 @@ http://d.hatena.ne.jp/femm/20150426/1430033839
 $ sudo apt-get install python-pip
 $ sudo pip install wiringpi2
 
+
 **OLED ディスプレイ 128×64 表示プログラム**
 
 GROVE - I2C OLEDディスプレイ128×64
@@ -36,6 +38,7 @@ https://github.com/Seeed-Studio/Grove-RaspberryPi/tree/master/Grove%20-%20OLED%2
 
 $ git clone https://github.com/Seeed-Studio/Grove-RaspberryPi
 $ cd “Grove-RaspberryPi\Grove - OLED Display 128x64”
+
 
 **照度センサ TSL2561 I2C プログラム計測**
 
